@@ -1,4 +1,4 @@
-# lru-cache
+# LRU-cache
 
 **LRU Cache implementation in C with hash table and doubly linked list**
 

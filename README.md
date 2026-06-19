@@ -104,12 +104,11 @@
 
 ### Примеры использования
 
-```bash
 # Собрать всё
 make all
 
 # Запустить основное приложение
-./program
+./project
 
 # Запустить все тесты
 make run_tests
@@ -140,7 +139,6 @@ make clean
 
 Пример кода
 
-```c
 #include "lru_cache.h"
 #include <stdio.h>
 #include <stdlib.h>

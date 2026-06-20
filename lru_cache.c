@@ -14,6 +14,11 @@
 // - Хвост списка — самый старый элемент
 // - При обращении элемент перемещается в голову
 // - При переполнении удаляется элемент из хвоста
+//
+// УПРАВЛЕНИЕ ПАМЯТЬЮ:
+// Кеш НЕ выделяет и НЕ освобождает value.
+// Пользователь сам выделяет и освобождает данные.
+// Кеш освобождает только свои внутренние структуры.
 // ============================================================
 
 #include <stdio.h>
@@ -37,14 +42,12 @@ struct LRUCache_t* lru_create(int capacity) {
     struct LRUCache_t* cache = (struct LRUCache_t*)malloc(sizeof(struct LRUCache_t));
     if (!cache) return NULL;
     
-    // Хеш-таблица с размером в 2 раза больше ёмкости
     cache->ht = hash_table_create(capacity * 2);
     if (!cache->ht) {
         free(cache);
         return NULL;
     }
     
-    // Двусвязный список для порядка использования
     cache->list = list_create();
     if (!cache->list) {
         hash_table_free(cache->ht);
@@ -62,15 +65,12 @@ struct LRUCache_t* lru_create(int capacity) {
 // Полное освобождение кеша
 void lru_free(struct LRUCache_t* cache) {
     if (!cache) return;
-    list_free(cache->list);      // список освобождает все узлы и value
+    list_free(cache->list);      // список освобождает только узлы, НЕ value
     hash_table_free(cache->ht);  // хеш-таблица освобождает только свои узлы
     free(cache);
 }
 
 // Получение элемента по ключу
-// При успешном поиске (cache hit):
-// - элемент перемещается в голову списка
-// - счётчик Cache_hit увеличивается
 void* lru_get(struct LRUCache_t* cache, int key) {
     if (!cache) return NULL;
     
@@ -83,33 +83,23 @@ void* lru_get(struct LRUCache_t* cache, int key) {
 }
 
 // Вставка или обновление элемента по ключу
-// Если ключ уже есть (cache hit):
-// - обновляется значение
-// - элемент перемещается в голову
-// - счётчик Cache_hit увеличивается
-// Если ключа нет (cache miss):
-// - создаётся новый узел
-// - добавляется в голову и хеш-таблицу
-// - при переполнении удаляется самый старый элемент
 void lru_put(struct LRUCache_t* cache, int key, void* value) {
     if (!cache) return;
     
     struct ListNode_t* node = (struct ListNode_t*)hash_table_get(cache->ht, key);
     
     if (node) {
-        // Cache hit — обновление существующего ключа
-        free(node->value);
+        // Cache hit — обновляем указатель на данные
         node->value = value;
         list_move_to_front(cache->list, node);
         cache->Cache_hit++;
         return;
     }
     
-    // Cache miss — вставка нового ключа
+    // Cache miss — создаём новый узел
     node = list_push_front(cache->list, key, value);
     if (!node) {
-        free(value);
-        return;
+        return;  // value остаётся у пользователя, он сам решит что делать
     }
     
     hash_table_put(cache->ht, key, (void*)node);
@@ -121,7 +111,7 @@ void lru_put(struct LRUCache_t* cache, int key, void* value) {
         if (tail) {
             int old_key = tail->key;
             hash_table_remove(cache->ht, old_key);
-            list_pop_back(cache->list);
+            list_pop_back(cache->list);  // удаляем узел, value не трогаем
             cache->size--;
         }
     }

@@ -1,9 +1,13 @@
 // ============================================================
-// Тесты для хеш-таблицы (освобождающая версия)
+// Тесты для хеш-таблицы (НЕ освобождает value)
 // ============================================================
 // Набор тестов покрывает все основные сценарии использования
-// хеш-таблицы. Каждый тест использует динамическую память
-// и полностью освобождает её после завершения.
+// хеш-таблицы, где пользователь сам управляет памятью.
+//
+// УПРАВЛЕНИЕ ПАМЯТЬЮ:
+// Хеш-таблица НЕ освобождает value.
+// Пользователь сам выделяет и освобождает память.
+// В тестах мы вручную освобождаем все выделенные данные.
 //
 // Тесты:
 // 1. Создание и уничтожение таблицы
@@ -50,6 +54,9 @@ static void test_put_get() {
     assert(*(int*)hash_table_get(ht, 2) == 200);
     assert(*(int*)hash_table_get(ht, 3) == 300);
     assert(hash_table_get(ht, 99) == NULL);
+    free(v1);
+    free(v2);
+    free(v3);
     hash_table_free(ht);
     printf("PASSED\n");
 }
@@ -66,6 +73,8 @@ static void test_update() {
     hash_table_put(ht, 1, v2);
     assert(*(int*)hash_table_get(ht, 1) == 200);
     assert(hash_table_count(ht) == 1);
+    free(v1);
+    free(v2);
     hash_table_free(ht);
     printf("PASSED\n");
 }
@@ -90,6 +99,9 @@ static void test_remove() {
     removed = hash_table_remove(ht, 99);
     assert(removed == 0);
     assert(hash_table_count(ht) == 2);
+    free(v1);
+    free(v2);  // v2 был удалён из таблицы, но память ещё у пользователя
+    free(v3);
     hash_table_free(ht);
     printf("PASSED\n");
 }
@@ -108,6 +120,9 @@ static void test_collisions() {
     assert(*(int*)hash_table_get(ht, 2) == 100);
     assert(*(int*)hash_table_get(ht, 13) == 200);
     assert(*(int*)hash_table_get(ht, 24) == 300);
+    free(v1);
+    free(v2);
+    free(v3);
     hash_table_free(ht);
     printf("PASSED\n");
 }
@@ -132,6 +147,10 @@ static void test_remove_from_chain() {
     assert(*(int*)hash_table_get(ht, 2) == 100);
     assert(*(int*)hash_table_get(ht, 13) == 200);
     assert(*(int*)hash_table_get(ht, 35) == 400);
+    free(v1);
+    free(v2);
+    free(v3);  // v3 был удалён из таблицы, но память ещё у пользователя
+    free(v4);
     hash_table_free(ht);
     printf("PASSED\n");
 }
@@ -140,15 +159,19 @@ static void test_remove_from_chain() {
 static void test_clear() {
     printf("TEST: hash_table_clear ... ");
     struct HashTable_t* ht = hash_table_create(10);
+    int* vals[10];
     for (int i = 0; i < 10; i++) {
-        int* val = malloc(sizeof(int));
-        *val = i * 100;
-        hash_table_put(ht, i, val);
+        vals[i] = malloc(sizeof(int));
+        *vals[i] = i * 100;
+        hash_table_put(ht, i, vals[i]);
     }
     assert(hash_table_count(ht) == 10);
     hash_table_clear(ht);
     assert(hash_table_count(ht) == 0);
     assert(hash_table_get(ht, 5) == NULL);
+    for (int i = 0; i < 10; i++) {
+        free(vals[i]);
+    }
     hash_table_free(ht);
     printf("PASSED\n");
 }
@@ -164,6 +187,8 @@ static void test_negative_keys() {
     assert(hash_table_count(ht) == 2);
     assert(*(int*)hash_table_get(ht, -5) == 100);
     assert(*(int*)hash_table_get(ht, -15) == 200);
+    free(v1);
+    free(v2);
     hash_table_free(ht);
     printf("PASSED\n");
 }
@@ -173,16 +198,20 @@ static void test_resize() {
     printf("TEST: hash_table_resize (auto grow) ... ");
     struct HashTable_t* ht = hash_table_create(5);
     int old_size = hash_table_size(ht);
+    int* vals[20];
     for (int i = 0; i < 20; i++) {
-        int* val = malloc(sizeof(int));
-        *val = i * 10;
-        hash_table_put(ht, i, val);
+        vals[i] = malloc(sizeof(int));
+        *vals[i] = i * 10;
+        hash_table_put(ht, i, vals[i]);
     }
     int new_size = hash_table_size(ht);
     assert(hash_table_count(ht) == 20);
     assert(new_size > old_size);
     for (int i = 0; i < 20; i++) {
         assert(*(int*)hash_table_get(ht, i) == i * 10);
+    }
+    for (int i = 0; i < 20; i++) {
+        free(vals[i]);
     }
     hash_table_free(ht);
     printf("PASSED (size %d -> %d)\n", old_size, new_size);
@@ -208,7 +237,6 @@ static void test_null_table() {
     printf("PASSED\n");
 }
 
-// Запуск всех тестов
 int main() {
     printf("\n=== HASH TABLE TESTS ===\n\n");
     test_create();

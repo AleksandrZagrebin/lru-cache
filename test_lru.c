@@ -1,19 +1,22 @@
-```c
 // ============================================================
 // Тесты для LRU-кеша
 // ============================================================
-// Набор тестов покрывает все ключевые сценарии использования:
-// - Создание и уничтожение кеша
-// - Вставка и получение элементов
-// - Обновление существующих ключей
-// - Механизм вытеснения (eviction) при переполнении
-// - Корректность порядка использования (LRU order)
-// - Работа с отрицательными ключами
-// - Хранение строковых значений
-// - Кеш ёмкостью в один элемент
+// Набор тестов покрывает все ключевые сценарии использования.
 //
-// Каждый тест использует динамическую память и полностью
-// освобождает её после завершения.
+// УПРАВЛЕНИЕ ПАМЯТЬЮ:
+// Кеш НЕ освобождает value.
+// Пользователь сам выделяет и освобождает память.
+// В тестах мы вручную освобождаем все выделенные данные.
+//
+// Тесты:
+// 1. Создание и уничтожение кеша
+// 2. Вставка и получение элементов
+// 3. Обновление существующих ключей
+// 4. Механизм вытеснения при переполнении
+// 5. Корректность порядка использования
+// 6. Работа с отрицательными ключами
+// 7. Хранение строковых значений
+// 8. Кеш ёмкостью в один элемент
 // ============================================================
 
 #include "lru_cache.h"
@@ -22,7 +25,6 @@
 #include <string.h>
 #include <assert.h>
 
-// Создание и уничтожение кеша
 static void test_create() {
     printf("TEST: lru_create ... ");
     struct LRUCache_t* cache = lru_create(3);
@@ -32,7 +34,6 @@ static void test_create() {
     printf("PASSED\n");
 }
 
-// Вставка и получение элементов
 static void test_put_get() {
     printf("TEST: lru_put and get ... ");
     struct LRUCache_t* cache = lru_create(3);
@@ -51,11 +52,13 @@ static void test_put_get() {
     assert(*(int*)lru_get(cache, 3) == 300);
     assert(lru_get(cache, 99) == NULL);
     
+    free(v1);
+    free(v2);
+    free(v3);
     lru_free(cache);
     printf("PASSED\n");
 }
 
-// Обновление существующих ключей
 static void test_update() {
     printf("TEST: lru_put update ... ");
     struct LRUCache_t* cache = lru_create(3);
@@ -71,11 +74,12 @@ static void test_update() {
     assert(*(int*)lru_get(cache, 1) == 200);
     assert(lru_size(cache) == 1);
     
+    free(v1);
+    free(v2);
     lru_free(cache);
     printf("PASSED\n");
 }
 
-// Механизм вытеснения (eviction) при переполнении
 static void test_eviction() {
     printf("TEST: lru_put eviction ... ");
     struct LRUCache_t* cache = lru_create(3);
@@ -93,16 +97,19 @@ static void test_eviction() {
     
     lru_put(cache, 4, v4);
     assert(lru_size(cache) == 3);
-    assert(lru_get(cache, 1) == NULL);      // 1 вытеснился
+    assert(lru_get(cache, 1) == NULL);
     assert(*(int*)lru_get(cache, 2) == 200);
     assert(*(int*)lru_get(cache, 3) == 300);
     assert(*(int*)lru_get(cache, 4) == 400);
     
+    free(v1);
+    free(v2);
+    free(v3);
+    free(v4);
     lru_free(cache);
     printf("PASSED\n");
 }
 
-// Корректность порядка использования (LRU order)
 static void test_lru_order() {
     printf("TEST: LRU order ... ");
     struct LRUCache_t* cache = lru_create(3);
@@ -116,22 +123,24 @@ static void test_lru_order() {
     lru_put(cache, 2, v2);
     lru_put(cache, 3, v3);
     
-    // Обращаемся к ключу 1 — он становится самым свежим
     lru_get(cache, 1);
     
     lru_put(cache, 4, v4);
     
     assert(lru_size(cache) == 3);
     assert(*(int*)lru_get(cache, 1) == 100);
-    assert(lru_get(cache, 2) == NULL);      // 2 вытеснился
+    assert(lru_get(cache, 2) == NULL);
     assert(*(int*)lru_get(cache, 3) == 300);
     assert(*(int*)lru_get(cache, 4) == 400);
     
+    free(v1);
+    free(v2);
+    free(v3);
+    free(v4);
     lru_free(cache);
     printf("PASSED\n");
 }
 
-// Работа с отрицательными ключами
 static void test_negative_keys() {
     printf("TEST: negative keys ... ");
     struct LRUCache_t* cache = lru_create(3);
@@ -146,11 +155,12 @@ static void test_negative_keys() {
     assert(*(int*)lru_get(cache, -1) == 100);
     assert(*(int*)lru_get(cache, -2) == 200);
     
+    free(v1);
+    free(v2);
     lru_free(cache);
     printf("PASSED\n");
 }
 
-// Хранение строковых значений
 static void test_string_values() {
     printf("TEST: string values ... ");
     struct LRUCache_t* cache = lru_create(3);
@@ -173,11 +183,14 @@ static void test_string_values() {
     assert(lru_get(cache, 1) == NULL);
     assert(strcmp((char*)lru_get(cache, 4), "New") == 0);
     
+    free(s1);
+    free(s2);
+    free(s3);
+    free(s4);
     lru_free(cache);
     printf("PASSED\n");
 }
 
-// Кеш ёмкостью в один элемент
 static void test_capacity_one() {
     printf("TEST: capacity 1 ... ");
     struct LRUCache_t* cache = lru_create(1);
@@ -191,14 +204,15 @@ static void test_capacity_one() {
     
     lru_put(cache, 2, v2);
     assert(lru_size(cache) == 1);
-    assert(lru_get(cache, 1) == NULL);      // 1 вытеснился
+    assert(lru_get(cache, 1) == NULL);
     assert(*(int*)lru_get(cache, 2) == 200);
     
+    free(v1);
+    free(v2);
     lru_free(cache);
     printf("PASSED\n");
 }
 
-// Запуск всех тестов
 int main() {
     printf("\n=== LRU CACHE TESTS ===\n\n");
     test_create();
@@ -212,4 +226,3 @@ int main() {
     printf("\nALL LRU CACHE TESTS PASSED!\n");
     return 0;
 }
-```

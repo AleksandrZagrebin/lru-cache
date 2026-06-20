@@ -8,6 +8,11 @@
 // - Список (List_t) инкапсулирован (скрыт от пользователя)
 // - Все операции выполняются за O(1)
 // - Значения хранятся как void* — можно хранить любые данные
+//
+// УПРАВЛЕНИЕ ПАМЯТЬЮ:
+// Список создаёт узлы (ListNode_t) и освобождает их.
+// Список НЕ освобождает value — это ответственность пользователя.
+// Пользователь сам выделяет и освобождает данные.
 // ============================================================
 
 #include "list.h"
@@ -32,14 +37,13 @@ static struct ListNode_t* create_node(int key, void* value) {
     return node;
 }
 
-// Освобождение узла (освобождает value и сам узел)
+// Освобождение узла (освобождает только сам узел, value не трогает)
 static void free_node(struct ListNode_t* node) {
     if (!node) return;
-    free(node->value);  // освобождаем данные
-    free(node);         // освобождаем узел
+    free(node);  // освобождаем только узел, value остаётся пользователю
 }
 
-// Очистка списка (удаляет все узлы)
+// Очистка списка (удаляет все узлы, НЕ освобождает value)
 void list_clear(struct List_t* list) {
     if (!list) return;
     struct ListNode_t* current = list->head;
@@ -63,7 +67,7 @@ struct List_t* list_create(void) {
     return list;
 }
 
-// Полное освобождение списка
+// Полное освобождение списка (НЕ освобождает value)
 void list_free(struct List_t* list) {
     if (!list) return;
     list_clear(list);
@@ -87,7 +91,7 @@ struct ListNode_t* list_push_front(struct List_t* list, int key, void* value) {
     return node;
 }
 
-// Удаление элемента из хвоста (самый старый)
+// Удаление элемента из хвоста (НЕ освобождает value)
 int list_pop_back(struct List_t* list) {
     if (!list || list->head == NULL) return 0;
     struct ListNode_t* tail = list->tail;
@@ -98,7 +102,7 @@ int list_pop_back(struct List_t* list) {
         list->tail = tail->prev;
         list->tail->next = NULL;
     }
-    free_node(tail);
+    free_node(tail);  // освобождаем только узел, value не трогаем
     list->size--;
     return 1;
 }
@@ -134,7 +138,7 @@ void list_move_to_front(struct List_t* list, struct ListNode_t* node) {
     list->head = node;
 }
 
-// Удаление произвольного узла
+// Удаление произвольного узла (НЕ освобождает value)
 void list_remove_node(struct List_t* list, struct ListNode_t* node) {
     if (!list || !node) return;
     if (node->prev) {
@@ -149,7 +153,7 @@ void list_remove_node(struct List_t* list, struct ListNode_t* node) {
     if (node == list->tail) {
         list->tail = node->prev;
     }
-    free_node(node);
+    free_node(node);  // освобождаем только узел, value не трогаем
     list->size--;
 }
 

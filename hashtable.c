@@ -6,8 +6,10 @@
 // Размер таблицы всегда округляется до простого числа
 // Автоматическое рехеширование при загрузке > 0.75
 //
-// ВНИМАНИЕ: данная версия НЕ освобождает value при удалении узла.
-// Это сделано для LRU-кеша, где памятью управляет список.
+// УПРАВЛЕНИЕ ПАМЯТЬЮ:
+// Хеш-таблица НЕ выделяет и НЕ освобождает память для value.
+// Пользователь сам управляет памятью: выделяет и освобождает.
+// Хеш-таблица только хранит указатели на данные.
 // ============================================================
 
 #include <stdio.h>
@@ -63,7 +65,7 @@ static struct HashNode_t* create_hash_node(int key, void* value) {
 // Освобождение узла (НЕ освобождает value)
 static void free_hash_node(struct HashNode_t* node) {
     if (!node) return;
-    free(node);
+    free(node);  // освобождаем только сам узел, value не трогаем
 }
 
 // Создание хеш-таблицы
@@ -147,7 +149,8 @@ void hash_table_resize(struct HashTable_t* ht) {
 }
 
 // Вставка или обновление значения по ключу
-// При обновлении старое значение освобождается
+// При обновлении НЕ освобождает старое значение
+// Пользователь сам должен освободить его, если нужно
 void hash_table_put(struct HashTable_t* ht, int key, void* value) {
     if (!ht) {
         fprintf(stderr, "Error: hash table is NULL\n");
@@ -169,8 +172,8 @@ void hash_table_put(struct HashTable_t* ht, int key, void* value) {
     // Поиск ключа в цепочке
     while (current) {
         if (current->key == key) {
-            // Ключ уже есть — обновляем значение
-            free(current->value);
+            // Ключ уже есть — обновляем указатель на значение
+            // Старое значение НЕ освобождается!
             current->value = value;
             return;
         }
@@ -181,7 +184,6 @@ void hash_table_put(struct HashTable_t* ht, int key, void* value) {
     struct HashNode_t* new_node = create_hash_node(key, value);
     if (!new_node) {
         fprintf(stderr, "Error: failed to allocate memory for key %d\n", key);
-        free(value);
         return;
     }
 
@@ -220,11 +222,10 @@ int hash_table_remove(struct HashTable_t* ht, int key) {
         if (current->key == key) {
             if (prev) {
                 prev->next = current->next;
-            }
-            else {
+            } else {
                 ht->buckets[index] = current->next;
             }
-            free_hash_node(current);
+            free_hash_node(current);  // освобождаем только узел хеш-таблицы
             ht->count--;
             return 1;
         }

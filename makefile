@@ -20,7 +20,7 @@ $(HASH_TEST): $(HASH_SRC)
 	$(CC) $(CFLAGS) -o $@ $^
 
 $(LIST_TEST): $(LIST_SRC)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) -o $@ $^
 
 $(LRU_TEST): $(LRU_SRC)
 	$(CC) $(CFLAGS) -o $@ $^
